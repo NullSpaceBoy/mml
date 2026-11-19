@@ -1,0 +1,120 @@
+{
+  "threshold": 0.5,
+  "rows": {
+    "total": 153164,
+    "fully_labeled": 63978,
+    "partially_labeled": 0,
+    "without_labels": 89186,
+    "excluded_from_exact_match": 89186
+  },
+  "entries": {
+    "evaluated": 383868,
+    "excluded": 535116
+  },
+  "per_label": {
+    "toxic": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 57888,
+      "predicted_positive": 10032,
+      "precision": 0.5423644338118022,
+      "recall": 0.893431855500821,
+      "f1": 0.6749782905346731,
+      "support": 6090,
+      "roc_auc": 0.9713081744511343,
+      "average_precision": 0.7997803445805383
+    },
+    "severe_toxic": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 63611,
+      "predicted_positive": 645,
+      "precision": 0.35658914728682173,
+      "recall": 0.6267029972752044,
+      "f1": 0.45454545454545453,
+      "support": 367,
+      "roc_auc": 0.9905351357109804,
+      "average_precision": 0.3991667358584818
+    },
+    "obscene": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 60287,
+      "predicted_positive": 4237,
+      "precision": 0.6665093226339391,
+      "recall": 0.7651043077756705,
+      "f1": 0.7124117053481333,
+      "support": 3691,
+      "roc_auc": 0.9817775191175874,
+      "average_precision": 0.8055306841879496
+    },
+    "threat": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 63767,
+      "predicted_positive": 382,
+      "precision": 0.44502617801047123,
+      "recall": 0.8056872037914692,
+      "f1": 0.5733558178752108,
+      "support": 211,
+      "roc_auc": 0.996415192543767,
+      "average_precision": 0.5850630649053751
+    },
+    "insult": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 60551,
+      "predicted_positive": 3593,
+      "precision": 0.6738101864736988,
+      "recall": 0.7064487890283047,
+      "f1": 0.6897435897435897,
+      "support": 3427,
+      "roc_auc": 0.9785197628526403,
+      "average_precision": 0.7553190434960034
+    },
+    "identity_hate": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 63266,
+      "predicted_positive": 612,
+      "precision": 0.6797385620915033,
+      "recall": 0.5842696629213483,
+      "f1": 0.6283987915407855,
+      "support": 712,
+      "roc_auc": 0.9915405997576844,
+      "average_precision": 0.706506279652296
+    }
+  },
+  "micro": {
+    "precision": 0.5898159068765705,
+    "recall": 0.7933508070078632,
+    "f1": 0.676608135533398,
+    "support": 14498,
+    "roc_auc": 0.9846438460070968,
+    "average_precision": 0.7503368036699526
+  },
+  "macro": {
+    "precision": 0.5606729717180393,
+    "recall": 0.730274136048803,
+    "f1": 0.6222389415979745,
+    "roc_auc": 0.9850160640722989,
+    "average_precision": 0.6752276921134407
+  },
+  "macro_valid_counts": {
+    "precision": 6,
+    "recall": 6,
+    "f1": 6,
+    "roc_auc": 6,
+    "average_precision": 6
+  },
+  "hamming_loss": 0.028642658413829753,
+  "exact_match_accuracy": 0.8742223889462003,
+  "mean_bce": 0.0689721473255958,
+  "experiment": "bert-baseline",
+  "checkpoint_source": "/workspace/experiments/bert-baseline/best",
+  "checkpoint_resolved": "/workspace/experiments/bert-baseline/checkpoints/epoch_0002",
+  "label_source": "/workspace/data/test_labels.csv",
+  "selected_epoch": 2,
+  "selected_train_loss": 0.03272702915030446,
+  "selected_validation_loss": 0.038376111054333056
+}

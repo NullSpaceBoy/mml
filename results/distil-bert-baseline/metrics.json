@@ -1,0 +1,120 @@
+{
+  "threshold": 0.5,
+  "rows": {
+    "total": 153164,
+    "fully_labeled": 63978,
+    "partially_labeled": 0,
+    "without_labels": 89186,
+    "excluded_from_exact_match": 89186
+  },
+  "entries": {
+    "evaluated": 383868,
+    "excluded": 535116
+  },
+  "per_label": {
+    "toxic": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 57888,
+      "predicted_positive": 10576,
+      "precision": 0.5220310136157338,
+      "recall": 0.906568144499179,
+      "f1": 0.6625465018600744,
+      "support": 6090,
+      "roc_auc": 0.9720133368915322,
+      "average_precision": 0.8084218738476426
+    },
+    "severe_toxic": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 63611,
+      "predicted_positive": 325,
+      "precision": 0.4492307692307692,
+      "recall": 0.3978201634877384,
+      "f1": 0.42196531791907516,
+      "support": 367,
+      "roc_auc": 0.9903039964854501,
+      "average_precision": 0.3927733292529212
+    },
+    "obscene": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 60287,
+      "predicted_positive": 3935,
+      "precision": 0.6891994917407878,
+      "recall": 0.7347602275806014,
+      "f1": 0.7112509834775768,
+      "support": 3691,
+      "roc_auc": 0.9807399934631292,
+      "average_precision": 0.8003015068892233
+    },
+    "threat": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 63767,
+      "predicted_positive": 214,
+      "precision": 0.514018691588785,
+      "recall": 0.5213270142180095,
+      "f1": 0.5176470588235295,
+      "support": 211,
+      "roc_auc": 0.9947409247692856,
+      "average_precision": 0.537822096849535
+    },
+    "insult": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 60551,
+      "predicted_positive": 3221,
+      "precision": 0.7097174790437752,
+      "recall": 0.6670557338780274,
+      "f1": 0.6877256317689531,
+      "support": 3427,
+      "roc_auc": 0.9784779163290916,
+      "average_precision": 0.763958473086678
+    },
+    "identity_hate": {
+      "evaluated": 63978,
+      "excluded": 89186,
+      "negatives": 63266,
+      "predicted_positive": 616,
+      "precision": 0.6931818181818182,
+      "recall": 0.5997191011235955,
+      "f1": 0.6430722891566265,
+      "support": 712,
+      "roc_auc": 0.9915376471804263,
+      "average_precision": 0.7198941931857075
+    }
+  },
+  "micro": {
+    "precision": 0.5931063694604755,
+    "recall": 0.772658297696234,
+    "f1": 0.6710798262692826,
+    "support": 14498,
+    "roc_auc": 0.9841577681120818,
+    "average_precision": 0.7447436822119078
+  },
+  "macro": {
+    "precision": 0.5962298772336115,
+    "recall": 0.6378750641311919,
+    "f1": 0.6073679638343058,
+    "roc_auc": 0.9846356358531526,
+    "average_precision": 0.6705285788519513
+  },
+  "macro_valid_counts": {
+    "precision": 6,
+    "recall": 6,
+    "f1": 6,
+    "roc_auc": 6,
+    "average_precision": 6
+  },
+  "hamming_loss": 0.02860618754363479,
+  "exact_match_accuracy": 0.8688299102816593,
+  "mean_bce": 0.06771560470532678,
+  "experiment": "distil-bert-base",
+  "checkpoint_source": "/workspace/experiments/distil-bert-base/best",
+  "checkpoint_resolved": "/workspace/experiments/distil-bert-base/checkpoints/epoch_0002",
+  "label_source": "/workspace/data/test_labels.csv",
+  "selected_epoch": 2,
+  "selected_train_loss": 0.03298902668964274,
+  "selected_validation_loss": 0.03738438089714395
+}
