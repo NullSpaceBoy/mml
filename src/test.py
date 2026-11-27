@@ -6,6 +6,7 @@ Checkpoints contain pickle data: load only artifacts from a trusted source.
 """
 
 import argparse
+import json
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +18,27 @@ from sklearn.metrics import (
 )
 
 from common import LABELS, load_inference, predict_texts, read_csv
+
+
+def load_thresholds(path):
+    """Load and validate a label-keyed JSON threshold file."""
+    try:
+        values = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Unable to read threshold file {path}: {exc}") from exc
+    if not isinstance(values, dict) or set(values) != set(LABELS):
+        raise ValueError(
+            f"Threshold file must contain exactly these labels: {', '.join(LABELS)}"
+        )
+    if any(isinstance(values[label], bool) for label in LABELS):
+        raise ValueError("Thresholds must be numeric, not boolean")
+    try:
+        thresholds = np.asarray([values[label] for label in LABELS], dtype=np.float64)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Thresholds must be finite numbers between 0 and 1") from exc
+    if not np.isfinite(thresholds).all() or np.any((thresholds < 0) | (thresholds > 1)):
+        raise ValueError("Thresholds must be finite numbers between 0 and 1")
+    return thresholds
 
 
 def load_evaluation_data(test_path, labels_path):
@@ -101,8 +123,17 @@ def compute_metrics(targets, probabilities, threshold=0.5):
         raise ValueError(f"Targets must have shape (n, {len(LABELS)})")
     if probabilities.shape != targets.shape:
         raise ValueError("Probabilities must have the same shape as targets")
-    if not np.isfinite(threshold) or not 0 <= threshold <= 1:
-        raise ValueError("Threshold must be between 0 and 1")
+    thresholds = np.asarray(threshold, dtype=np.float64)
+    if thresholds.ndim == 0:
+        thresholds = np.full(len(LABELS), thresholds.item())
+    if (
+        thresholds.shape != (len(LABELS),)
+        or not np.isfinite(thresholds).all()
+        or np.any((thresholds < 0) | (thresholds > 1))
+    ):
+        raise ValueError(
+            f"Threshold must be a number or {len(LABELS)} values between 0 and 1"
+        )
     if not np.all(
         np.isfinite(probabilities) & (probabilities >= 0) & (probabilities <= 1)
     ):
@@ -123,8 +154,8 @@ def compute_metrics(targets, probabilities, threshold=0.5):
             "evaluated": int(selected.sum()),
             "excluded": int((~selected).sum()),
             "negatives": int((truth == 0).sum()),
-            "predicted_positive": int((scores >= threshold).sum()),
-            **_binary_metrics(truth, scores, threshold),
+            "predicted_positive": int((scores >= thresholds[column]).sum()),
+            **_binary_metrics(truth, scores, thresholds[column]),
         }
     macro, macro_valid_counts = {}, {}
     for metric in ("precision", "recall", "f1", "roc_auc", "average_precision"):
@@ -134,6 +165,7 @@ def compute_metrics(targets, probabilities, threshold=0.5):
         macro[metric] = float(np.mean(values)) if values else None
         macro_valid_counts[metric] = len(values)
     truth, scores = targets[known], probabilities[known]
+    label_thresholds = np.broadcast_to(thresholds, probabilities.shape)[known]
     if truth.size:
         # Clip only for log loss, keeping saturated sigmoid outputs finite.
         epsilon = np.finfo(np.float64).eps
@@ -141,14 +173,14 @@ def compute_metrics(targets, probabilities, threshold=0.5):
         bce = float(
             -np.mean(truth * np.log(clipped) + (1 - truth) * np.log1p(-clipped))
         )
-        hamming = float(np.mean((scores >= threshold) != truth))
+        hamming = float(np.mean((scores >= label_thresholds) != truth))
     else:
         bce = hamming = None
     exact_match = (
         float(
             np.mean(
                 np.all(
-                    (probabilities[fully_labeled] >= threshold)
+                    (probabilities[fully_labeled] >= thresholds)
                     == targets[fully_labeled],
                     axis=1,
                 )
@@ -158,7 +190,11 @@ def compute_metrics(targets, probabilities, threshold=0.5):
         else None
     )
     return {
-        "threshold": float(threshold),
+        "threshold": (
+            float(thresholds[0])
+            if np.all(thresholds == thresholds[0])
+            else dict(zip(LABELS, map(float, thresholds)))
+        ),
         "rows": {
             "total": len(targets),
             "fully_labeled": int(fully_labeled.sum()),
@@ -168,7 +204,7 @@ def compute_metrics(targets, probabilities, threshold=0.5):
         },
         "entries": {"evaluated": int(known.sum()), "excluded": int((~known).sum())},
         "per_label": per_label,
-        "micro": _binary_metrics(truth, scores, threshold),
+        "micro": _binary_metrics(truth, scores, label_thresholds),
         "macro": macro,
         "macro_valid_counts": macro_valid_counts,
         "hamming_loss": hamming,
@@ -208,7 +244,14 @@ def print_metrics(metrics):
 
     rows = metrics["rows"]
     entries = metrics["entries"]
-    print(f"Threshold: {metrics['threshold']:g} (probability >= threshold)")
+    threshold = metrics["threshold"]
+    if isinstance(threshold, dict):
+        threshold_text = ", ".join(
+            f"{label}={value:g}" for label, value in threshold.items()
+        )
+    else:
+        threshold_text = f"{threshold:g}"
+    print(f"Threshold: {threshold_text} (probability >= threshold)")
     print(
         f"Rows: {rows['total']} total; {rows['fully_labeled']} fully labeled; "
         f"{rows['partially_labeled']} partially labeled; {rows['without_labels']} without labels"
@@ -288,8 +331,12 @@ def main(argv=None):
     parser.add_argument(
         "--threshold",
         type=float,
-        default=0.5,
-        help="Decision threshold in [0, 1], default: 0.5",
+        help="Shared decision threshold in [0, 1], default: 0.5",
+    )
+    parser.add_argument(
+        "--threshold-file",
+        type=Path,
+        help="Label-keyed JSON thresholds from src/tune_thresholds.py (overrides --threshold)",
     )
     parser.add_argument(
         "--batch-size", type=int, default=16, help="Inference batch size, default: 16"
@@ -298,12 +345,19 @@ def main(argv=None):
         "--device", default="auto", help="Torch device, e.g. auto, cpu, cuda, cuda:0"
     )
     args = parser.parse_args(argv)
-    if not np.isfinite(args.threshold) or not 0 <= args.threshold <= 1:
+    if args.threshold is not None and (
+        not np.isfinite(args.threshold) or not 0 <= args.threshold <= 1
+    ):
         parser.error("--threshold must be between 0 and 1")
     if args.batch_size <= 0:
         parser.error("--batch-size must be positive")
     try:
         test, targets = load_evaluation_data(args.test_csv, args.test_labels)
+        thresholds = (
+            load_thresholds(args.threshold_file)
+            if args.threshold_file
+            else (0.5 if args.threshold is None else args.threshold)
+        )
         model, tokenizer, snapshot, device, directory = load_inference(
             args.checkpoint, args.device
         )
@@ -328,7 +382,7 @@ def main(argv=None):
             args.batch_size,
             device,
         )
-        metrics = compute_metrics(targets, probabilities, args.threshold)
+        metrics = compute_metrics(targets, probabilities, thresholds)
         write_predictions(output, test["id"].tolist(), probabilities, args.overwrite)
         print_metrics(metrics)
         print(f"Predictions: {output}")

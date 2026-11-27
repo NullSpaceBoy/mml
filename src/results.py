@@ -116,11 +116,14 @@ def prepare_curves(targets, probabilities, metrics):
 
 
 def confusion_counts(targets, probabilities, threshold):
+    thresholds = np.asarray(threshold, dtype=np.float64)
+    if thresholds.ndim == 0:
+        thresholds = np.full(len(LABELS), thresholds.item())
     counts = {}
     for i, label in enumerate(LABELS):
         known = ~np.isnan(targets[:, i]) & (targets[:, i] != -1)
         truth = targets[known, i].astype(int)
-        predicted = (probabilities[known, i] >= threshold).astype(int)
+        predicted = (probabilities[known, i] >= thresholds[i]).astype(int)
         counts[label] = np.bincount(2 * truth + predicted, minlength=4).reshape(2, 2)
     return counts
 
@@ -205,6 +208,8 @@ def write_plots(output, experiment, history, epoch, curves, matrices, metrics):
                 fontsize=16,
             )
         item = metrics["per_label"][label]
+        threshold = metrics["threshold"]
+        label_threshold = threshold[label] if isinstance(threshold, dict) else threshold
         axis.set(
             xticks=[0, 1],
             yticks=[0, 1],
@@ -212,7 +217,7 @@ def write_plots(output, experiment, history, epoch, curves, matrices, metrics):
             yticklabels=["Negative", "Positive"],
             xlabel="Prediction",
             ylabel="Truth",
-            title=f"{experiment}: {label}\nThreshold >= {metrics['threshold']:g}; "
+            title=f"{experiment}: {label}\nThreshold >= {label_threshold:g}; "
             f"evaluated={item['evaluated']}, excluded={item['excluded']}",
         )
         if not item["evaluated"]:
@@ -221,12 +226,19 @@ def write_plots(output, experiment, history, epoch, curves, matrices, metrics):
 
 
 def generate_report(
-    experiment, output_dir, test_labels=None, threshold=0.5, overwrite=False
+    experiment,
+    output_dir,
+    test_labels=None,
+    threshold=0.5,
+    overwrite=False,
+    threshold_file=None,
 ):
     directory_name(experiment)
     directory_name(output_dir)
-    if not np.isfinite(threshold) or not 0 <= threshold <= 1:
-        raise ValueError("Threshold must be finite and between 0 and 1")
+    if threshold_file is not None:
+        from test import load_thresholds
+
+        threshold = load_thresholds(threshold_file)
     source = PROJECT_ROOT / "experiments" / experiment / "best"
     if not source.is_dir():
         raise ValueError(f"Missing or broken best checkpoint directory: {source}")
@@ -347,6 +359,11 @@ def main(argv=None):
         help="Decision threshold in [0, 1], default: 0.5; not optimized on test data",
     )
     parser.add_argument(
+        "--threshold-file",
+        type=Path,
+        help="Label-keyed JSON thresholds from src/tune_thresholds.py (overrides --threshold)",
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Replace only known report artifacts; artifact symlinks are always rejected",
@@ -359,6 +376,7 @@ def main(argv=None):
             args.test_labels,
             args.threshold,
             args.overwrite,
+            args.threshold_file,
         )
     except Exception as exc:
         parser.error(str(exc))
